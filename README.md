@@ -34,9 +34,16 @@
 3. 在 `./contracts` 中编译合约，运行如下的命令：
     ```bash
     npx hardhat compile
+    npx hardhat clean
     ```
-4. ...
-5. ...
+4. 在 `./contracts` 中部署合约，运行如下的命令：
+    ```bash
+   npx hardhat run scripts/deploy.ts
+    ```
+5. 在 `./contracts` 中测试合约， 运行如下的命令：
+   ```bash
+   npx hardhat test
+   ```
 6. 在 `./frontend` 中安装需要的依赖，运行如下的命令：
     ```bash
     npm install
