@@ -5,12 +5,13 @@ pragma solidity ^0.8.20;
 // You can use this dependency directly because it has been installed by TA already
 //import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "./MyERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+
 
 // Uncomment this line to use console.log
 import "hardhat/console.sol";
 
-contract BuyMyRoom {
+contract BuyMyRoom is ERC721{
     // use a event if you want
     // to represent time you can choose block.timestamp
     event HouseListed(uint256 tokenId, uint256 price, address owner);
@@ -24,16 +25,34 @@ contract BuyMyRoom {
         bool isListed;
     }
 
-    mapping(uint256 => House) public houses; // A map from house-index to its information
+    // A map from house-index to its information
+    mapping(uint256 => House) public houses;
 
-    MyERC721 public myERC721;
+    // info to create new 721
+    mapping(address => bool) public claimedList;
+    uint256 public nextTokenId;
+
+    // info to manage transaction
     uint256 public feeRate; // for platformOwner
     address public platformOwner;
 
-    constructor() {
-        myERC721 = new MyERC721("HouseToken", "HouseSymbol");
+    constructor() ERC721("HouseToken", "ETH"){
+        nextTokenId = 1;
         feeRate = 1; // let 1% of the price to platformOwner
         platformOwner = msg.sender;  // deployer of the contract is platformOwner
+    }
+
+    function airdrop() external {
+        require(!claimedList[msg.sender], "You have already claimed the airdrop.");
+        _mint(msg.sender, nextTokenId);
+        houses[nextTokenId] = House({
+            owner: msg.sender,
+            listedTimestamp: 0,
+            price: 0,
+            isListed: false
+        });
+        claimedList[msg.sender] = true;
+        nextTokenId++;
     }
 
     function helloworld() pure external returns(string memory) {
@@ -41,15 +60,13 @@ contract BuyMyRoom {
     }
 
     function listHouse(uint256 tokenId, uint256 price) external {
-        require(myERC721.ownerOf(tokenId) == msg.sender, "You are not the owner of this house.");
+        require(ownerOf(tokenId) == msg.sender, "You are not the owner of this house.");
         require(!houses[tokenId].isListed, "House is already listed.");
 
-        houses[tokenId] = House({
-            owner: msg.sender,
-            listedTimestamp: block.timestamp,
-            price: price,
-            isListed: true
-        });
+        houses[tokenId].listedTimestamp = block.timestamp;
+        houses[tokenId].price = price;
+        houses[tokenId].isListed = true;
+
         emit HouseListed(tokenId, price, msg.sender);
     }
 
@@ -57,7 +74,8 @@ contract BuyMyRoom {
         House storage house = houses[tokenId];
         require(house.isListed, "House is not for sale.");
         require(msg.value == house.price, "Incorrect payment amount.");
-
+        console.log("Buy: msg.value");
+        console.log(msg.value);
         // calculate the fee for platformOwner, avoid float number
         uint256 platformFee = (block.timestamp - house.listedTimestamp)/60 * feeRate/100 * house.price;
         uint256 sellerFee = house.price - platformFee;
@@ -66,7 +84,7 @@ contract BuyMyRoom {
         payable(house.owner).transfer(sellerFee);
         payable(platformOwner).transfer(platformFee);
 
-        myERC721.safeTransferFrom(house.owner, msg.sender, tokenId);
+        _transfer(house.owner, msg.sender, tokenId);
 
         house.owner = msg.sender;
         house.isListed = false;
@@ -77,18 +95,17 @@ contract BuyMyRoom {
     // get house info of specific house
     function getHouseInfo(uint256 tokenId) external view returns(address owner, bool isListed, uint256 price, uint256 listTimestamp) {
         House memory house = houses[tokenId];
-
         return (house.owner, house.isListed, house.price, house.listedTimestamp);
     }
 
     // get the house list of user itself
     function getMyHouses() external view returns(uint256[] memory) {
-        uint256 houseCount = myERC721.balanceOf(msg.sender);
+        uint256 houseCount = balanceOf(msg.sender);
         uint256[] memory ownedHouses = new uint256[](houseCount);
 
         uint256 counter=0;
-        for (uint256 tokenId = 1; tokenId < myERC721.nextTokenId(); tokenId++) {
-            if(myERC721.ownerOf(tokenId) == msg.sender) {
+        for (uint256 tokenId = 1; tokenId < nextTokenId; tokenId++) {
+            if (ownerOf(tokenId) == msg.sender) {
                 ownedHouses[counter] = tokenId;
                 counter++;
             }
@@ -98,16 +115,21 @@ contract BuyMyRoom {
 
     // get listed houses to be sold
     function getListedHouses() external view returns(uint256[] memory) {
-        uint256 houseCount = myERC721.balanceOf();
-        uint256[] memory listedHouses = new uint256[](houseCount);
+        uint256 totalHouses = nextTokenId - 1;
+        uint256[] memory listedHouses = new uint256[](totalHouses);
 
-        uint256 counter=0;
-        for (uint256 tokenId = 1; tokenId < myERC721.nextTokenId(); tokenId++) {
-            if(myERC721) {
+        uint256 counter = 0;
+        for (uint256 tokenId = 1; tokenId < nextTokenId; tokenId++) {
+            if (houses[tokenId].isListed) {
                 listedHouses[counter] = tokenId;
                 counter++;
             }
         }
-        return listedHouses;
+
+        uint256[] memory result = new uint256[](counter);
+        for (uint256 i = 0; i < counter; i++) {
+            result[i] = listedHouses[i];
+        }
+        return result;
     }
 }

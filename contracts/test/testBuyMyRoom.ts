@@ -2,7 +2,7 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
-import {BuyMyRoom, MyERC721} from "../typechain-types";
+import {BuyMyRoom} from "../typechain-types";
 
 describe("HouseTest", function () {
   // We define a fixture to reuse the same setup in every test.
@@ -15,12 +15,7 @@ describe("HouseTest", function () {
     const buyMyRoom = await BuyMyRoom.deploy();
     await buyMyRoom.deployed();
 
-    // 使用 MyERC721 的 ABI 和地址，获取 MyERC721 合约实例
-    const myERC721Address = await buyMyRoom.myERC721();
-    const MyERC721 = await ethers.getContractFactory("MyERC721");
-    const myERC721 = MyERC721.attach(myERC721Address);  // 将合约地址绑定到 MyERC721 合约实例
-
-    return { buyMyRoom, myERC721, owner, otherAccount, user1, user2 };
+    return { buyMyRoom, owner, otherAccount, user1, user2 };
   }
 
   describe("Test functions", function() {
@@ -31,27 +26,27 @@ describe("HouseTest", function () {
     });
 
     it("Airdrop: Should claim air drop", async function () {
-      const { myERC721, user1  } = await loadFixture(deployFixture);
-      await myERC721.connect(user1 ).airdrop();
-      expect(await myERC721.ownerOf(1)).to.equal(user1.address);
+      const { buyMyRoom, user1  } = await loadFixture(deployFixture);
+      await buyMyRoom.connect(user1 ).airdrop();
+      expect(await buyMyRoom.ownerOf(1)).to.equal(user1.address);
     });
 
     it("Airdrop: Should not allow the same user to claim airdrop twice", async function () {
-      const { myERC721, user1 } = await loadFixture(deployFixture);
+      const { buyMyRoom, user1 } = await loadFixture(deployFixture);
 
-      await myERC721.connect(user1).airdrop();
-      expect(await myERC721.ownerOf(1)).to.equal(user1.address);
+      await buyMyRoom.connect(user1).airdrop();
+      expect(await buyMyRoom.ownerOf(1)).to.equal(user1.address);
 
-      await expect(myERC721.connect(user1).airdrop()).to.be.revertedWith("This user has claimed air drop already.");
+      await expect(buyMyRoom.connect(user1).airdrop()).to.be.revertedWith("You have already claimed the airdrop.");
     });
 
     it("List: Should allow user to list house for sale", async function () {
-      const { buyMyRoom, myERC721, user1 } = await loadFixture(deployFixture);
-      await myERC721.connect(user1).airdrop();
+      const { buyMyRoom, user1 } = await loadFixture(deployFixture);
+      await buyMyRoom.connect(user1).airdrop();
 
       // User lists the house for sale
       const price = ethers.utils.parseEther("1.0"); // 1 ETH
-      await myERC721.connect(user1).approve(buyMyRoom.address, 1);
+      await buyMyRoom.connect(user1).approve(buyMyRoom.address, 1);
       await buyMyRoom.connect(user1).listHouse(1, price);
 
       // Check if the house is listed
@@ -62,19 +57,19 @@ describe("HouseTest", function () {
     });
 
     it("Buy: Should allow user to buy a listed house", async function () {
-      const { buyMyRoom, myERC721, user1, user2 } = await loadFixture(deployFixture);
+      const { buyMyRoom, user1, user2 } = await loadFixture(deployFixture);
 
       // User1 claims airdrop and lists house
-      await myERC721.connect(user1).airdrop();
+      await buyMyRoom.connect(user1).airdrop();
       const price = ethers.utils.parseEther("1.0");
-      await myERC721.connect(user1).approve(buyMyRoom.address, 1);
+      await buyMyRoom.connect(user1).approve(buyMyRoom.address, 1);
       await buyMyRoom.connect(user1).listHouse(1, price);
 
       // User2 buys the house
       await buyMyRoom.connect(user2).buyHouse(1, { value: price });
 
       // Check if the ownership has transferred to user2
-      expect(await myERC721.ownerOf(1)).to.equal(user2.address);
+      expect(await buyMyRoom.ownerOf(1)).to.equal(user2.address);
 
       // Check if the house is no longer listed
       const houseInfo = await buyMyRoom.getHouseInfo(1);
@@ -82,10 +77,10 @@ describe("HouseTest", function () {
     });
 
     it("Get: Should return the correct house IDs owned by the user", async function () {
-      const { buyMyRoom, myERC721, user1 } = await loadFixture(deployFixture);
+      const { buyMyRoom, user1 } = await loadFixture(deployFixture);
 
       // User1 claims two NFTs via airdrop
-      await myERC721.connect(user1).airdrop();
+      await buyMyRoom.connect(user1).airdrop();
 
       // Get owned houses
       const ownedHouses = await buyMyRoom.connect(user1).getMyHouses();

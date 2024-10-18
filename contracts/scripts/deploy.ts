@@ -6,9 +6,6 @@ async function main() {
   await buyMyRoom.deployed();
   console.log(`BuyMyRoom deployed to ${buyMyRoom.address}`);
 
-  const myERC72Address = await buyMyRoom.myERC721();
-  console.log(`MyERC721 deployed to: ${myERC72Address}`);
-
 }
 
 // We recommend this pattern to be able to use async/await everywhere
