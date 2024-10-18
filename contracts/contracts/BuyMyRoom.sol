@@ -16,7 +16,7 @@ contract BuyMyRoom {
     event HouseListed(uint256 tokenId, uint256 price, address owner);
     event HouseSold(uint256 tokenId, uint256 price, address buyer);
 
-    // maybe you need a struct to store car information
+    // maybe you need a struct to store information
     struct House {
         address owner;
         uint256 listedTimestamp;
@@ -77,6 +77,7 @@ contract BuyMyRoom {
     // get house info of specific house
     function getHouseInfo(uint256 tokenId) external view returns(address owner, bool isListed, uint256 price, uint256 listTimestamp) {
         House memory house = houses[tokenId];
+
         return (house.owner, house.isListed, house.price, house.listedTimestamp);
     }
 
@@ -87,11 +88,26 @@ contract BuyMyRoom {
 
         uint256 counter=0;
         for (uint256 tokenId = 1; tokenId < myERC721.nextTokenId(); tokenId++) {
-            if (myERC721.ownerOf(tokenId) == msg.sender) {
+            if(myERC721.ownerOf(tokenId) == msg.sender) {
                 ownedHouses[counter] = tokenId;
                 counter++;
             }
         }
         return ownedHouses;
+    }
+
+    // get listed houses to be sold
+    function getListedHouses() external view returns(uint256[] memory) {
+        uint256 houseCount = myERC721.balanceOf();
+        uint256[] memory listedHouses = new uint256[](houseCount);
+
+        uint256 counter=0;
+        for (uint256 tokenId = 1; tokenId < myERC721.nextTokenId(); tokenId++) {
+            if(myERC721) {
+                listedHouses[counter] = tokenId;
+                counter++;
+            }
+        }
+        return listedHouses;
     }
 }

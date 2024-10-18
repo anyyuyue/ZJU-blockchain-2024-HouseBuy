@@ -1,12 +1,13 @@
 import React from 'react';
-import logo from './logo.svg';
 import './App.css';
-import HousePage from "./pages/House";
+import HouseList from "./components/House";
+import MyHouses from './components/MyHouses';
+import SellHouse from './components/SellHouse';
 
 function App() {
   return (
     <div className="App">
-      <HousePage/>
+      <HouseList/>
     </div>
   );
 }

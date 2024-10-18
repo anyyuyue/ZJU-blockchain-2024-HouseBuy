@@ -39,6 +39,8 @@
 4. 在 `./contracts` 中部署合约，运行如下的命令：
     ```bash
    npx hardhat run scripts/deploy.ts
+   
+   npx hardhat run scripts/deploy.ts --network ganache
     ```
 5. 在 `./contracts` 中测试合约， 运行如下的命令：
    ```bash
@@ -52,6 +54,7 @@
     ```bash
     npm run start
     ```
+   在浏览器打开`http://localhost:3000`
 
 ## 功能实现分析
 
