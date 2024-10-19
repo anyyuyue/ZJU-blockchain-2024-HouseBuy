@@ -3,21 +3,17 @@ pragma solidity ^0.8.20;
 
 // Uncomment the line to use openzeppelin/ERC721,ERC20
 // You can use this dependency directly because it has been installed by TA already
-//import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "./RoomToken.sol";
 
 
 // Uncomment this line to use console.log
 import "hardhat/console.sol";
 
 contract BuyMyRoom is ERC721{
-    // use a event if you want
-    // to represent time you can choose block.timestamp
     event HouseListed(uint256 tokenId, uint256 price, address owner);
     event HouseSold(uint256 tokenId, uint256 price, address buyer);
 
-    // maybe you need a struct to store information
     struct House {
         address owner;
         uint256 listedTimestamp;
@@ -32,27 +28,34 @@ contract BuyMyRoom is ERC721{
     mapping(address => bool) public claimedList;
     uint256 public nextTokenId;
 
+    // info of REC20
+    RoomToken public token;
+
     // info to manage transaction
     uint256 public feeRate; // for platformOwner
     address public platformOwner;
 
-    constructor() ERC721("HouseToken", "ETH"){
+    constructor() ERC721("House", "NTF") {
         nextTokenId = 1;
+        token = new RoomToken();
         feeRate = 1; // let 1% of the price to platformOwner
         platformOwner = msg.sender;  // deployer of the contract is platformOwner
     }
 
     function airdrop() external {
         require(!claimedList[msg.sender], "You have already claimed the airdrop.");
-        _mint(msg.sender, nextTokenId);
-        houses[nextTokenId] = House({
-            owner: msg.sender,
-            listedTimestamp: 0,
-            price: 0,
-            isListed: false
-        });
-        claimedList[msg.sender] = true;
-        nextTokenId++;
+        // airdrop 3 houses for each person
+        for(int i=0; i<3; i++) {
+            _mint(msg.sender, nextTokenId);
+            houses[nextTokenId] = House({
+                owner: msg.sender,
+                listedTimestamp: 0,
+                price: 0,
+                isListed: false
+            });
+            claimedList[msg.sender] = true;
+            nextTokenId++;
+        }
     }
 
     function helloworld() pure external returns(string memory) {
@@ -70,20 +73,26 @@ contract BuyMyRoom is ERC721{
         emit HouseListed(tokenId, price, msg.sender);
     }
 
-    function buyHouse(uint256 tokenId) external payable {
+    // buy house using ERC20 token
+    function buyHouse(uint256 tokenId) external {
         House storage house = houses[tokenId];
-        require(house.isListed, "House is not for sale.");
-        require(msg.value == house.price, "Incorrect payment amount.");
-        console.log("Buy: msg.value");
-        console.log(msg.value);
+
         // calculate the fee for platformOwner, avoid float number
-        uint256 platformFee = (block.timestamp - house.listedTimestamp)/60 * feeRate/100 * house.price;
+        uint256 platformFee = (block.timestamp - house.listedTimestamp)/60 * feeRate * house.price /100 ;
         uint256 sellerFee = house.price - platformFee;
+        console.log(sellerFee);
         require(sellerFee>0, "This house has listed for too long time to be sold");
 
-        payable(house.owner).transfer(sellerFee);
-        payable(platformOwner).transfer(platformFee);
+//        // transfer using ether on Ganache
+//        payable(house.owner).transfer(sellerFee);
+//        payable(platformOwner).transfer(platformFee);
 
+        // transfer using ERC20 token
+        require(token.balanceOf(msg.sender) >= house.price, "Insufficient token balance");
+        token.transferFrom(msg.sender, house.owner, sellerFee);
+        token.transferFrom(msg.sender, platformOwner, platformFee);
+
+        // transfer ERC721 House
         _transfer(house.owner, msg.sender, tokenId);
 
         house.owner = msg.sender;

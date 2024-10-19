@@ -1,8 +1,6 @@
 import React from 'react';
 import './App.css';
 import HouseList from "./components/House";
-import MyHouses from './components/MyHouses';
-import SellHouse from './components/SellHouse';
 
 function App() {
   return (
