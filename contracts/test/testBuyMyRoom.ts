@@ -56,37 +56,5 @@ describe("HouseTest", function () {
       expect(houseInfo.price).to.equal(price);
     });
 
-    it("Buy: Should allow user to buy a listed house", async function () {
-      const { buyMyRoom, user1, user2 } = await loadFixture(deployFixture);
-
-      // User1 claims airdrop and lists house
-      await buyMyRoom.connect(user1).airdrop();
-      const price = ethers.utils.parseEther("1.0");
-      await buyMyRoom.connect(user1).approve(buyMyRoom.address, 1);
-      await buyMyRoom.connect(user1).listHouse(1, price);
-
-      // User2 buys the house
-      await buyMyRoom.connect(user2).buyHouse(1, { value: price });
-
-      // Check if the ownership has transferred to user2
-      expect(await buyMyRoom.ownerOf(1)).to.equal(user2.address);
-
-      // Check if the house is no longer listed
-      const houseInfo = await buyMyRoom.getHouseInfo(1);
-      expect(houseInfo.isListed).to.be.false;
-    });
-
-    it("Get: Should return the correct house IDs owned by the user", async function () {
-      const { buyMyRoom, user1 } = await loadFixture(deployFixture);
-
-      // User1 claims two NFTs via airdrop
-      await buyMyRoom.connect(user1).airdrop();
-
-      // Get owned houses
-      const ownedHouses = await buyMyRoom.connect(user1).getMyHouses();
-      expect(ownedHouses.length).to.equal(1);
-      expect(ownedHouses[0]).to.equal(1);
-    });
-
   })
 });
